@@ -1,17 +1,42 @@
-###
-cv="I am python sql master who is currently doing c++"
-###
-skills=["python","sql","c++","machine learning","java"]
+def extract_skill(cvtest):
+  skills = ["python", "sql", "c\+\+", "machine learning", "java"] 
+    
+  pattern = r'\b(' + '|'.join(skills) + r')\b'
+    
+    
+  matches = re.findall(pattern, cvtest.lower())
 
+  return matches
 
-def extract_skill():
-  cv_skills=[]
+import re
 
-  for j in cv.split():
-    if j in skills:
-      cv_skills.append(j)
+def extract_experience(exptest):
+  
+  matches = re.findall(r'\d+\s+years', exptest)
 
-  return cv_skills
+  return matches
 
+def industry(industrytest):
+    
+    
+    
+    industries = {
+        "Tech": r"\b(software|python|java|cloud|developer|data science|ai|ml)\b",
+        "Finance": r"\b(banking|accounting|audit|fintech|investment|equity|excel)\b",
+        "Healthcare": r"\b(medical|nurse|patient|clinical|hospital|pharmacy|surgery)\b"
+    }
+    
+    for industry, pattern in industries.items():
+        if re.search(pattern, industrytest):
+            return industry
+###testing
 
-extract_skill()
+testcv ="""
+Arjun Nair
+Software Engineering Student
+worked for 20 years
+Skills: Python, C++, Financial Analysis."""
+
+print(extract_skill(testcv.lower()))
+print(extract_experience(testcv.lower()))
+print(industry(testcv.lower()))
