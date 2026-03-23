@@ -31,12 +31,6 @@ def industry(industrytest):
             return industry
 ###testing
 
-testcv ="""
-Arjun Nair
-Software Engineering Student
-worked for 20 years
-Skills: Python, C++, Financial Analysis."""
-
-print(extract_skill(testcv.lower()))
-print(extract_experience(testcv.lower()))
-print(industry(testcv.lower()))
+print(extract_skill(cv.lower()))
+print(extract_experience(cv.lower()))
+print(industry(cv.lower()))
