@@ -1,3 +1,5 @@
+pip install PyMuPDF
+
 import fitz
 
 def extraction_of_cv(filepath):
