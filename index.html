@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CV Analyzer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0d0d;
+      --surface: #161616;
+      --border: #2a2a2a;
+      --accent: #c8f135;
+      --accent-dim: #9dbd27;
+      --text: #f0ede6;
+      --muted: #6b6b6b;
+      --weak: #ff5c5c;
+      --decent: #f5a623;
+      --strong: #c8f135;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    /* grid background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 48px 48px;
+      opacity: 0.35;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .page {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+
+    /* header */
+    header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+
+    .tag {
+      display: inline-block;
+      font-size: 11px;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      padding: 3px 10px;
+      border-radius: 2px;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(2.4rem, 6vw, 4rem);
+      font-weight: 800;
+      line-height: 1.05;
+      letter-spacing: -.02em;
+      color: var(--text);
+    }
+
+    h1 span {
+      color: var(--accent);
+    }
+
+    .sub {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    /* upload card */
+    .card {
+      width: 100%;
+      max-width: 540px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 36px;
+    }
+
+    .drop-zone {
+      border: 1.5px dashed var(--border);
+      border-radius: 4px;
+      padding: 40px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      position: relative;
+    }
+
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: var(--accent);
+      background: rgba(200, 241, 53, 0.04);
+    }
+
+    .drop-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    .drop-icon {
+      font-size: 28px;
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    .drop-text {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .drop-text strong {
+      color: var(--text);
+    }
+
+    .file-name {
+      margin-top: 14px;
+      font-size: 12px;
+      color: var(--accent);
+      min-height: 18px;
+    }
+
+    .btn {
+      display: block;
+      width: 100%;
+      margin-top: 20px;
+      padding: 14px;
+      background: var(--accent);
+      color: #0d0d0d;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      border: none;
+      border-radius: 2px;
+      cursor: pointer;
+      transition: background .2s, transform .1s;
+    }
+
+    .btn:hover { background: var(--accent-dim); }
+    .btn:active { transform: scale(.98); }
+    .btn:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
+
+    /* loading */
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 20px 0 4px;
+    }
+
+    .loading.show { display: block; }
+
+    .spinner {
+      display: inline-block;
+      width: 20px; height: 20px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      margin-bottom: 8px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading p { color: var(--muted); font-size: 12px; }
+
+    /* results */
+    .results {
+      display: none;
+      width: 100%;
+      max-width: 540px;
+      margin-top: 24px;
+      animation: fadeUp .4s ease forwards;
+    }
+
+    .results.show { display: block; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .score-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 32px 36px;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    .score-label {
+      font-size: 11px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .score-num {
+      font-family: 'Syne', sans-serif;
+      font-size: 5rem;
+      font-weight: 800;
+      line-height: 1;
+      transition: color .3s;
+    }
+
+    .score-num.weak   { color: var(--weak); }
+    .score-num.decent { color: var(--decent); }
+    .score-num.strong { color: var(--strong); }
+
+    .score-bar-wrap {
+      margin-top: 16px;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .score-bar {
+      height: 100%;
+      border-radius: 2px;
+      width: 0%;
+      transition: width .8s cubic-bezier(.4,0,.2,1), background .3s;
+    }
+
+    .score-bar.weak   { background: var(--weak); }
+    .score-bar.decent { background: var(--decent); }
+    .score-bar.strong { background: var(--strong); }
+
+    .tier-badge {
+      display: inline-block;
+      margin-top: 14px;
+      font-size: 11px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 2px;
+    }
+
+    .tier-badge.weak   { background: rgba(255,92,92,.12);  color: var(--weak);   border: 1px solid var(--weak); }
+    .tier-badge.decent { background: rgba(245,166,35,.12); color: var(--decent); border: 1px solid var(--decent); }
+    .tier-badge.strong { background: rgba(200,241,53,.12); color: var(--strong); border: 1px solid var(--strong); }
+
+    .feedback-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 28px 36px;
+    }
+
+    .feedback-title {
+      font-size: 11px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    .feedback-text {
+      font-size: 13px;
+      color: var(--text);
+      white-space: pre-line;
+      line-height: 1.8;
+    }
+
+    .feedback-text strong {
+      color: var(--accent);
+    }
+
+    .reset-btn {
+      display: block;
+      width: 100%;
+      margin-top: 16px;
+      padding: 11px;
+      background: transparent;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      cursor: pointer;
+      transition: color .2s, border-color .2s;
+    }
+
+    .reset-btn:hover { color: var(--text); border-color: var(--muted); }
+
+    /* error */
+    .error-msg {
+      display: none;
+      margin-top: 14px;
+      padding: 12px 16px;
+      background: rgba(255,92,92,.08);
+      border: 1px solid rgba(255,92,92,.3);
+      border-radius: 4px;
+      color: var(--weak);
+      font-size: 12px;
+    }
+
+    .error-msg.show { display: block; }
+
+    footer {
+      margin-top: 48px;
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: .05em;
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <div class="tag">Portfolio Project</div>
+    <h1>CV <span>Analyzer</span></h1>
+    <p class="sub">Upload your PDF — get a score and feedback instantly.</p>
+  </header>
+
+  <!-- Upload card -->
+  <div class="card" id="upload-card">
+    <div class="drop-zone" id="drop-zone">
+      <input type="file" id="file-input" accept=".pdf"/>
+      <span class="drop-icon">📄</span>
+      <p class="drop-text"><strong>Click to upload</strong> or drag & drop</p>
+      <p class="drop-text" style="margin-top:4px">PDF only</p>
+    </div>
+    <div class="file-name" id="file-name"></div>
+    <div class="error-msg" id="error-msg"></div>
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <p>Analyzing your CV...</p>
+    </div>
+    <button class="btn" id="submit-btn" disabled onclick="analyzeCV()">Analyze CV</button>
+  </div>
+
+  <!-- Results -->
+  <div class="results" id="results">
+    <div class="score-card">
+      <div class="score-label">Your CV Score</div>
+      <div class="score-num" id="score-num">—</div>
+      <div class="score-bar-wrap">
+        <div class="score-bar" id="score-bar"></div>
+      </div>
+      <div class="tier-badge" id="tier-badge"></div>
+    </div>
+    <div class="feedback-card">
+      <div class="feedback-title">Feedback & Suggestions</div>
+      <div class="feedback-text" id="feedback-text"></div>
+    </div>
+    <button class="reset-btn" onclick="reset()">← Analyze another CV</button>
+  </div>
+
+  <footer>built with FastAPI + XGBoost</footer>
+</div>
+
+<script>
+  // ── Change this to your deployed backend URL when live ──
+  const API_URL = "http://localhost:8000";
+
+  let selectedFile = null;
+
+  const fileInput   = document.getElementById('file-input');
+  const dropZone    = document.getElementById('drop-zone');
+  const fileNameEl  = document.getElementById('file-name');
+  const submitBtn   = document.getElementById('submit-btn');
+  const loadingEl   = document.getElementById('loading');
+  const errorEl     = document.getElementById('error-msg');
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) setFile(fileInput.files[0]);
+  });
+
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    const f = e.dataTransfer.files[0];
+    if (f && f.type === 'application/pdf') setFile(f);
+    else showError('Please drop a PDF file.');
+  });
+
+  function setFile(f) {
+    selectedFile = f;
+    fileNameEl.textContent = '✓ ' + f.name;
+    submitBtn.disabled = false;
+    errorEl.classList.remove('show');
+  }
+
+  function showError(msg) {
+    errorEl.textContent = msg;
+    errorEl.classList.add('show');
+  }
+
+  async function analyzeCV() {
+    if (!selectedFile) return;
+
+    submitBtn.disabled = true;
+    loadingEl.classList.add('show');
+    errorEl.classList.remove('show');
+
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+
+    try {
+      const res = await fetch(`${API_URL}/analyze-cv`, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || 'Something went wrong.');
+      }
+
+      const data = await res.json();
+      showResults(data.score, data.feedback);
+
+    } catch (err) {
+      showError(err.message || 'Could not reach the server. Is it running?');
+      submitBtn.disabled = false;
+    } finally {
+      loadingEl.classList.remove('show');
+    }
+  }
+
+  function showResults(score, feedback) {
+    document.getElementById('upload-card').style.display = 'none';
+
+    const tier = score < 50 ? 'weak' : score < 75 ? 'decent' : 'strong';
+    const tierLabel = score < 50 ? 'Weak' : score < 75 ? 'Decent' : 'Strong';
+
+    const scoreEl = document.getElementById('score-num');
+    const barEl   = document.getElementById('score-bar');
+    const badgeEl = document.getElementById('tier-badge');
+
+    scoreEl.textContent = score;
+    scoreEl.className = 'score-num ' + tier;
+
+    badgeEl.textContent = tierLabel;
+    badgeEl.className = 'tier-badge ' + tier;
+
+    document.getElementById('feedback-text').textContent = feedback;
+
+    document.getElementById('results').classList.add('show');
+
+    // animate bar after a tiny delay
+    setTimeout(() => {
+      barEl.style.width = score + '%';
+      barEl.className = 'score-bar ' + tier;
+    }, 100);
+  }
+
+  function reset() {
+    selectedFile = null;
+    fileInput.value = '';
+    fileNameEl.textContent = '';
+    submitBtn.disabled = true;
+    errorEl.classList.remove('show');
+    loadingEl.classList.remove('show');
+
+    document.getElementById('results').classList.remove('show');
+    document.getElementById('upload-card').style.display = 'block';
+    document.getElementById('score-bar').style.width = '0%';
+  }
+</script>
+</body>
+</html>
